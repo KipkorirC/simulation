@@ -4,19 +4,9 @@ import plotly.express as px
 import pandas as pd
 
 
-#Global constants
-#RAINFALL_COEFFICIENT = 0.85
-#CONSUMPTION_RATE_IN_LITRES = 50/1000
-
-##Loading the data
-RAIN_DATA = pd.read_csv("ClimateEngine.csv")
-RAIN_DATA = RAIN_DATA[1:]
-RAIN_DATA.rename(columns={'Precipitation (CHIRPS)':'Date'}, inplace=True)
-RAIN_DATA.rename(columns={'Unnamed: 1':'Rain in mm3'}, inplace=True)
-
 
 class roof_data:
-    def __init__(self,EFFECTIVE_ROOF_AREA_M2,POPULATION_PER_HOUSEHOLD,TANK_CAPACITY_LITRES,CONSUMPTION_RATE_IN_LITRES,RAINFALL_COEFFICIENT):
+    def __init__(self,RAIN_DATA,EFFECTIVE_ROOF_AREA_M2,POPULATION_PER_HOUSEHOLD,TANK_CAPACITY_LITRES,CONSUMPTION_RATE_IN_LITRES,RAINFALL_COEFFICIENT):
         self.POPULATION_PER_HOUSEHOLD = POPULATION_PER_HOUSEHOLD
         self.RAIN_DATA = RAIN_DATA
         self.EFFECTIVE_ROOF_AREA_M2 = EFFECTIVE_ROOF_AREA_M2
@@ -24,6 +14,8 @@ class roof_data:
         self.CONSUMPTION_RATE_IN_LITRES = CONSUMPTION_RATE_IN_LITRES
         self.RAINFALL_COEFFICIENT = RAINFALL_COEFFICIENT
         self.current_date= 0
+
+    
     
 
     def Generate_Daily_Volume(self):
@@ -130,84 +122,93 @@ class roof_data:
 def main():
     st.title("Rainfall Simulation Web App")
     st.sidebar.header("Input Parameters")
+    # Create a file upload widget for the Excel file
+    excel_file = st.sidebar.file_uploader("Upload Excel File", type=["xlsx"])
+    if excel_file:
+        # If a file is uploaded, read it into a DataFrame
+        RAIN_DATA = pd.read_excel(excel_file,engine="openpyxl")
+        RAIN_DATA = RAIN_DATA[1:]
+        RAIN_DATA.rename(columns={'Precipitation (CHIRPS)':'Date'}, inplace=True)
+        RAIN_DATA.rename(columns={'Unnamed: 1':'Rain in mm3'}, inplace=True)
+        st.sidebar.success("Excel file uploaded successfully!")
 
-    # Create input widgets for Rainfall Coefficient, Consumption Rate, Effective Roof Area, and Tank Capacity
-    RAINFALL_COEFFICIENT = st.sidebar.number_input("Rainfall Coefficient", min_value=0.0)
-    CONSUMPTION_RATE_IN_LITRES = st.sidebar.number_input("Consumption Rate (in Litres)", min_value=0.0)
-    POPULATION_PER_HOUSEHOLD = st.sidebar.number_input("Population per household",min_value=0)
-    EFFECTIVE_ROOF_AREA_M2 = st.sidebar.number_input("Effective Roof Area (m2)", min_value=0.0)
-    TANK_CAPACITY_LITRES = st.sidebar.number_input("Tank Capacity (Litres)", min_value=0.0)
+        # Create input widgets for Rainfall Coefficient, Consumption Rate, Effective Roof Area, and Tank Capacity
+        RAINFALL_COEFFICIENT = st.sidebar.number_input("Rainfall Coefficient", min_value=0.0)
+        CONSUMPTION_RATE_IN_LITRES = st.sidebar.number_input("Consumption Rate (in Litres)", min_value=0.0)
+        POPULATION_PER_HOUSEHOLD = st.sidebar.number_input("Population per household",min_value=0)
+        EFFECTIVE_ROOF_AREA_M2 = st.sidebar.number_input("Effective Roof Area (m2)", min_value=0.0)
+        TANK_CAPACITY_LITRES = st.sidebar.number_input("Tank Capacity (Litres)", min_value=0.0)
     
 
     # Create a simulation button
-    if st.sidebar.button("Simulate"):
-        Roof = roof_data(EFFECTIVE_ROOF_AREA_M2, POPULATION_PER_HOUSEHOLD, TANK_CAPACITY_LITRES,CONSUMPTION_RATE_IN_LITRES,RAINFALL_COEFFICIENT)
+        if st.sidebar.button("Simulate"):
+            Roof = roof_data(RAIN_DATA,EFFECTIVE_ROOF_AREA_M2, POPULATION_PER_HOUSEHOLD, TANK_CAPACITY_LITRES,CONSUMPTION_RATE_IN_LITRES,RAINFALL_COEFFICIENT)
         #days_with_overflow,total_days = Roof.simulate()
-        simulation_results = Roof.simulate()
+            simulation_results = Roof.simulate()
         #st.write(simulation_results)
         #Results=[days_with_overflow,total_days,Demand_met,Demand_not_met]
-        days_with_overflow=simulation_results[0]
-        total_days = simulation_results[1]
-        Demand_met = simulation_results[2]
-        Demand_not_met = simulation_results[3]
+            days_with_overflow=simulation_results[0]
+            total_days = simulation_results[1]
+            Demand_met = simulation_results[2]
+            Demand_not_met = simulation_results[3]
         # Display simulation results in a dashboard
-        st.subheader("Simulation Results")
+            st.subheader("Simulation Results")
         #st.write(simulation_results)
         #((days with overflow/totaldays)*100)+1 => efficiency of the tank\
-        EFFICIENCY = (days_with_overflow/total_days*100)+1
-        RELIABILITY = (Demand_met/total_days)*100
+            EFFICIENCY = (days_with_overflow/total_days*100)+1
+            RELIABILITY = (Demand_met/total_days)*100
         # Create charts for visualization (example: a line chart)
 
 # Assuming you have data for the variables: days_with_overflow, total_days, Demand_met, Demand_not_met
 # and simulation_results contains the data for the line chart
 
-        pie_chart_data = {
-            "Labels": ["Days with Overflow", "Days without Overflow"],
-            "Values": [days_with_overflow, total_days - days_with_overflow]
-            }
+            pie_chart_data = {
+                "Labels": ["Days with Overflow", "Days without Overflow"],
+                "Values": [days_with_overflow, total_days - days_with_overflow]
+                }
 
-        pie_chart_data2 = {
-            "Labels": ["Days where demand was met", "Days where demand was not met"],
-            "Values": [Demand_met, Demand_not_met]
-            }
+            pie_chart_data2 = {
+                "Labels": ["Days where demand was met", "Days where demand was not met"],
+                "Values": [Demand_met, Demand_not_met]
+                }
 
-        pie_chart_df2 = pd.DataFrame(pie_chart_data2)
+            pie_chart_df2 = pd.DataFrame(pie_chart_data2)
 
-        fig2 = px.pie(
-            pie_chart_df2,
-            names="Labels",
-            values="Values",
-            title="Reliablity"
-            )
+            fig2 = px.pie(
+                pie_chart_df2,
+                names="Labels",
+                values="Values",
+                title="Reliablity"
+             )
 
-        pie_chart_df = pd.DataFrame(pie_chart_data)
-        fig = px.pie(
-            pie_chart_df,
-            names="Labels",
-            values="Values",
-            title="Efficiency"
-            )
+            pie_chart_df = pd.DataFrame(pie_chart_data)
+            fig = px.pie(
+                pie_chart_df,
+                names="Labels",
+                values="Values",
+                title="Efficiency"
+                )
 
 # Display the pie charts in Streamlit
-        st.write("Efficiency")
-        st.write(EFFICIENCY)
-        col1, col2 = st.columns(2)
+            st.write("Efficiency")
+            st.write(EFFICIENCY)
+            col1, col2 = st.columns(2)
 
 # Display the first chart in the first column
-        col1.plotly_chart(fig,use_container_width=True)
+            col1.plotly_chart(fig,use_container_width=True)
 
 # Display the second chart in the second column
-        col2.plotly_chart(fig2,use_container_width=True)
+            col2.plotly_chart(fig2,use_container_width=True)
 
 # Line chart on rainfall distribution
 # Group the data into months
-        Daily_data = pd.DataFrame(simulation_results[4])
-        Daily_data['Date'] = pd.to_datetime(Daily_data['Date'], format="%Y-%m-%d")
-        Daily_data['Month'] = Daily_data['Date'].dt.month
-        Daily_data['Year'] = Daily_data['Date'].dt.year
+            Daily_data = pd.DataFrame(simulation_results[4])
+            Daily_data['Date'] = pd.to_datetime(Daily_data['Date'], format="%Y-%m-%d")
+            Daily_data['Month'] = Daily_data['Date'].dt.month
+            Daily_data['Year'] = Daily_data['Date'].dt.year
      
-        Monthly_Rain_Analysis = Daily_data.groupby('Month')['Rainfall (mm)'].sum().reset_index()
-        Yearly_Rain_analysis = Daily_data.groupby('Year')['Rainfall (mm)'].sum().reset_index()
+            Monthly_Rain_Analysis = Daily_data.groupby('Month')['Rainfall (mm)'].sum().reset_index()
+            Yearly_Rain_analysis = Daily_data.groupby('Year')['Rainfall (mm)'].sum().reset_index()
         #fig_month_rain_dist= px.bar(
         #    Monthly_Rain_Analysis,
         #    x= "Month",
