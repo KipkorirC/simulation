@@ -1,3 +1,4 @@
+#importing libraries
 import random
 import streamlit as st
 import plotly.express as px
@@ -33,8 +34,9 @@ class roof_data:
             Volume_at_the_start_m3 = self.volume_at_the_end_m3
         
         ##calculating the volume of water consumed per day(demand)
-
         demand_per_day = self.POPULATION_PER_HOUSEHOLD * self.CONSUMPTION_RATE_IN_LITRES/1000
+
+        #logic of water is only consumed if the demand is met
         if Volume_at_the_start_m3 >= demand_per_day:
             Volume_consumed_m3 = demand_per_day
         else:
@@ -46,8 +48,11 @@ class roof_data:
         ##calculating the volume in the tank at the end of the day
 
         volume_at_the_end_m3 = (Volume_at_the_start_m3 +Volume_Generated_m3)-Volume_consumed_m3
+
+        ##calculating volume if there is overflow
         if volume_at_the_end_m3>(self.TANK_CAPACITY_LITRES/1000):
             volume_at_the_end_m3=(self.TANK_CAPACITY_LITRES/1000)
+            
 
         self.volume_at_the_end_m3 = volume_at_the_end_m3
 
@@ -55,7 +60,11 @@ class roof_data:
         ##calculating overflow
         ##OFx= VT x-1+ RROx – MCx-TC
         overflow = max(0,Volume_at_the_start_m3 + Volume_Generated_m3 - Volume_consumed_m3 - (self.TANK_CAPACITY_LITRES/1000))
+
+        #calculating if demand was met(1) if it was not met(0)
         demand_met = 1 if Volume_at_the_start_m3 >= demand_per_day else 0
+
+        #returning the data as a dictionary
         return {
             "Date":Date,
             "Rainfall (mm)": RAIN_IN_MM,
@@ -72,11 +81,10 @@ class roof_data:
     
 
     def simulate(self):
-        Daily_data=[]
+        Daily_data=[]#empty array
         days_with_overflow = 0  # Variable to count days with overflow
         total_days = 0  # Variable to count total days
         Demand_met = 0
-        Demand_not_met=0
         for _ in range(len(self.RAIN_DATA)):
             day_data = self.Generate_Daily_Volume()
             Daily_data.append(day_data)
@@ -89,18 +97,16 @@ class roof_data:
 
             if day_data["Demand Met"]>0:
                 Demand_met+=1
-            else:
-                Demand_not_met+=1
         
 
-        Results=[days_with_overflow,total_days,Demand_met,Demand_not_met,Daily_data]
+        Results=[days_with_overflow,total_days,Demand_met,Daily_data]
         return Results
     def simulate_user(self):
         Daily_data=[]
         days_with_overflow = 0  # Variable to count days with overflow
         total_days = 0  # Variable to count total days
-        Demand_met = 0
-        Demand_not_met=0
+        Demand_met = 0  # total days where demand was met
+        Demand_not_met=0 # total days where demand was not met
         for _ in range(len(self.RAIN_DATA)):
             day_data = self.Generate_Daily_Volume()
             Daily_data.append(day_data)
@@ -115,21 +121,28 @@ class roof_data:
                 Demand_met+=1
             else:
                 Demand_not_met+=1
+
+        
         EFFICIENCY = (days_with_overflow/total_days*100)+1
+
         RELIABILITY = (Demand_met/total_days)*100
         return [EFFICIENCY,RELIABILITY]
 
 def main():
-    st.title("Rainfall Simulation Web App")
+    st.title("Rainfall Simulation Web App.  By Njuguna and Muthoni")
     st.sidebar.header("Input Parameters")
+
+
     # Create a file upload widget for the Excel file
     excel_file = st.sidebar.file_uploader("Upload Excel File", type=["xlsx"])
     if excel_file:
         # If a file is uploaded, read it into a DataFrame
+        ## reading the data
         RAIN_DATA = pd.read_excel(excel_file,engine="openpyxl")
+
         RAIN_DATA = RAIN_DATA[1:]
         RAIN_DATA.rename(columns={'Precipitation (CHIRPS)':'Date'}, inplace=True)
-        RAIN_DATA.rename(columns={'Unnamed: 1':'Rain in mm3'}, inplace=True)
+        RAIN_DATA.rename(columns={'Unnamed: 1':'Rain in mm'}, inplace=True)
         st.sidebar.success("Excel file uploaded successfully!")
 
         # Create input widgets for Rainfall Coefficient, Consumption Rate, Effective Roof Area, and Tank Capacity
@@ -149,17 +162,18 @@ def main():
         #Results=[days_with_overflow,total_days,Demand_met,Demand_not_met]
             days_with_overflow=simulation_results[0]
             total_days = simulation_results[1]
-            Demand_met = simulation_results[2]
-            Demand_not_met = simulation_results[3]
+            Total_days_Demand_met = simulation_results[2]
+            Raw_data =pd.DataFrame(simulation_results[3])
+
         # Display simulation results in a dashboard
             st.subheader("Simulation Results")
-        #st.write(simulation_results)
-        #((days with overflow/totaldays)*100)+1 => efficiency of the tank\
+        #update efficiency function
+        #total volume_generated_m3- total overflow/total volume generated from roof)*100
             EFFICIENCY = (days_with_overflow/total_days*100)+1
-            RELIABILITY = (Demand_met/total_days)*100
+            RELIABILITY = (Total_days_Demand_met/total_days)*100
         # Create charts for visualization (example: a line chart)
 
-# Assuming you have data for the variables: days_with_overflow, total_days, Demand_met, Demand_not_met
+# Assuming you have data for the variables: days_with_overflow, total_days, Total_days_Demand_met, Demand_not_met
 # and simulation_results contains the data for the line chart
 
             pie_chart_data = {
@@ -169,7 +183,7 @@ def main():
 
             pie_chart_data2 = {
                 "Labels": ["Days where demand was met", "Days where demand was not met"],
-                "Values": [Demand_met, Demand_not_met]
+                "Values": [Total_days_Demand_met, total_days-Total_days_Demand_met]
                 }
 
             pie_chart_df2 = pd.DataFrame(pie_chart_data2)
@@ -190,8 +204,8 @@ def main():
                 )
 
 # Display the pie charts in Streamlit
-            st.write("Efficiency")
-            st.write(EFFICIENCY)
+#            st.write("Efficiency")
+#            st.write(EFFICIENCY)
             col1, col2 = st.columns(2)
 
 # Display the first chart in the first column
@@ -199,39 +213,7 @@ def main():
 
 # Display the second chart in the second column
             col2.plotly_chart(fig2,use_container_width=True)
-
-# Line chart on rainfall distribution
-# Group the data into months
-            Daily_data = pd.DataFrame(simulation_results[4])
-            Daily_data['Date'] = pd.to_datetime(Daily_data['Date'], format="%Y-%m-%d")
-            Daily_data['Month'] = Daily_data['Date'].dt.month
-            Daily_data['Year'] = Daily_data['Date'].dt.year
-     
-            Monthly_Rain_Analysis = Daily_data.groupby('Month')['Rainfall (mm)'].sum().reset_index()
-            Yearly_Rain_analysis = Daily_data.groupby('Year')['Rainfall (mm)'].sum().reset_index()
-        #fig_month_rain_dist= px.bar(
-        #    Monthly_Rain_Analysis,
-        #    x= "Month",
-        #    y= "Rainfall (mm)",
-        #    orientation="v",
-        #    title="<b>Rainfall distribution</b>",
-        #    color_discrete_sequence=["#0083B8"]*len(Monthly_Rain_Analysis),
-        #    template="plotly_white"
-        #)
-
-        
-        #fig_year_rain_dist=px.bar(
-        #    Yearly_Rain_analysis,
-        #    x="Year",
-        #    y="Rainfall (mm)",
-        #    orientation="v",
-        #    title="<b>Yearly Rainfall Distribution</b>",
-        #    color_discrete_sequence=["#0083B8"]*len(Yearly_Rain_analysis),
-        #    template="plotly_white"
-        #)
-        #st.plotly_chart(fig_year_rain_dist)
-
-        #return EFFECTIVE_ROOF_AREA_M2,TANK_CAPACITY_LITRES,POPULATION_PER_HOUSEHOLD,EFFICIENCY,RELIABILITY
+            st.write(Raw_data)
 
 
 if __name__ == "__main__":
