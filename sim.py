@@ -143,6 +143,8 @@ def main():
 
         # Display simulation results in a dashboard
             st.subheader("Simulation Results")
+            st.write(Total_days_Demand_met)
+            st.write(total_days)
 
 
         #total volume_generated_m3- total overflow/total volume generated from roof)*100
@@ -172,22 +174,26 @@ def main():
             pie_chart_df = pd.DataFrame(pie_chart_data)
             pie_chart_df2 = pd.DataFrame(pie_chart_data2)
 
-# Create custom colors for the "Efficiency" slice
-            colors = ["blue", "red"]  
+            fig2 = px.pie(
+                pie_chart_df2,
+                names="Labels",
+                values="Values",
+                title="Reliablity",
+                color="Labels",
+                color_discrete_map=({"Days where demand was met":"blue",
+                                     "Days where demand was not met":"red"})
+             )
+            fig = px.pie(
+                pie_chart_df,
+                names="Labels",
+                values="Values",
+                title="Efficiency",
+                color="Labels",
+                color_discrete_map=({"Efficiency":"blue",
+                                     "Losses":"red"})
+                                       
+                )
 
-# Create the first pie chart using go.Figure
-            fig = go.Figure(data=[go.Pie(labels=pie_chart_df["Labels"], values=pie_chart_df["Values"])])
-
-# Apply the custom colors
-            fig.update_traces(marker=dict(colors=colors))
-
-# Set the title for the first pie chart
-            fig.update_layout(title="Efficiency")
-
-# Create the second pie chart using Plotly Express
-            fig2 = go.Figure(data=[go.Pie(labels=pie_chart_df2["Labels"], values=pie_chart_df["Values"])])
-            fig2.update_traces(marker=dict(colors=colors))
-            fig2.update_layout(title="Reliability")
 # Display the pie charts in Streamlit
             col1, col2 = st.columns(2)
 
