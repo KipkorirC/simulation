@@ -1,8 +1,8 @@
 #importing libraries
 import streamlit as st
 import plotly.express as px
-import plotly.graph_objects as go
 import pandas as pd
+from dateutil import relativedelta
 
 
 class roof_data:
@@ -86,27 +86,36 @@ class roof_data:
         Total_days_Demand_met = 0
         Total_volume_generated_from_roof = 0
         Total_overflow =0
+        Total_rainfall = 0
         for _ in range(len(self.RAIN_DATA)):#15000
             day_data = self.Generate_Daily_Volume()
             Daily_data.append(day_data)
             self.current_date += 1
             total_days += 1
             Total_volume_generated_from_roof += day_data["Volume Generated (m3)"]
+            Total_rainfall += day_data["Rainfall (mm)"]
             
             # update count of overflow
             Total_overflow +=day_data["Overflow (m3)"] 
            
 
-            if day_data["Demand Met"]>0:
+            if day_data["Demand Met"]!=0:
                 Total_days_Demand_met+=1
         
-
-        Results=[total_days,Total_days_Demand_met,Daily_data,Total_overflow,Total_volume_generated_from_roof]
+        Results=[total_days,Total_days_Demand_met,Daily_data,Total_overflow,Total_volume_generated_from_roof,Total_rainfall]
         return Results
 def main():
+    st.set_page_config(
+        page_title="rainsim",
+        layout="wide"
+    )
     st.title("Rainfall Simulation Web App.  By Njuguna and Muthoni")
-    st.sidebar.header("Input Parameters")
+    st.markdown('##')
+    st.markdown('---')
 
+
+    ##sidebar
+    st.sidebar.header("Input Parameters")
 
     # Create a file upload widget for the Excel file
     excel_file = st.sidebar.file_uploader("Upload Excel File", type=["xlsx"])
@@ -140,21 +149,81 @@ def main():
             Raw_data =pd.DataFrame(simulation_results[2])
             Total_overflow = simulation_results[3]
             Total_volume_generated_from_roof = simulation_results[4]
+            Total_rainfall = simulation_results[5]
 
         # Display simulation results in a dashboard
-            st.subheader("Simulation Results")
-            st.write(Total_days_Demand_met)
-            st.write(total_days)
+           # st.subheader("Simulation Results")
 
 
         #total volume_generated_m3- total overflow/total volume generated from roof)*100
             EFFICIENCY = ((Total_volume_generated_from_roof-Total_overflow)/Total_volume_generated_from_roof)*100
             RELIABILITY = (Total_days_Demand_met/total_days)*100
         #Displaying main efficiency
+            
 
-# Assuming you have data for the variables: days_with_overflow, total_days, Total_days_Demand_met, Demand_not_met
-# and simulation_results contains the data for the line chart
+        ##grouping the data into years and months
+            Raw_data['Date'] = pd.to_datetime(Raw_data['Date'], format="%Y-%m-%d")
+            Raw_data['Month'] = Raw_data['Date'].dt.month
+            Raw_data['Year'] = Raw_data['Date'].dt.year
 
+        ##getting the number of years of the date
+            first_date = Raw_data["Date"][0]
+            final_date = Raw_data["Date"][total_days-1]
+            no_of_years = relativedelta.relativedelta(final_date,first_date).years
+        ##calculating annual averages
+            Average_annual_rainfall = Total_rainfall/no_of_years
+            Average_rain_water_harvesting_potential = Total_volume_generated_from_roof/no_of_years
+        ##grouping the data into years
+
+
+            Monthly_Rain_Analysis = Raw_data.groupby('Month')['Rainfall (mm)'].sum().reset_index()
+            Yearly_Rain_analysis = Raw_data.groupby('Year')['Rainfall (mm)'].mean().reset_index()
+            Yearly_Potential = Raw_data.groupby('Year')["Volume Generated (m3)"].sum().reset_index()
+
+                   
+            fig_year_rain_dist=px.bar(
+                Yearly_Rain_analysis,
+                x="Year",
+                y="Rainfall (mm)",
+                orientation="v",
+                title="<b>Yearly Rainfall Distribution</b>",
+                color_discrete_sequence=["#0083B8"]*len(Yearly_Rain_analysis),
+                template="plotly_white"
+            )
+
+            fig_harvesting_potential=px.bar(
+                Yearly_Potential,
+                x="Year",
+                y="Volume Generated (m3)",
+                orientation="v",
+                title="<b>Yearly harvesting potential Distribution</b>",
+                color_discrete_sequence=["#0083B8"]*len(Yearly_Potential),
+                template="plotly_white"
+            )
+
+            
+
+            
+            left_column,middle_column, right_column = st.columns(3)
+            with left_column:
+                st.subheader("Total Volume Generated: ")
+                st.text(Total_volume_generated_from_roof)
+            with middle_column:
+                st.subheader("Total Rainfall")
+                st.text(Total_rainfall)
+            with right_column:
+                st.subheader("Total Overflow: ")
+                st.text(Total_overflow)
+
+            left,middle = st.columns(2)
+            with left:
+                st.subheader("Total days where demand was met")
+                st.text(Total_days_Demand_met)
+            with middle:
+                st.subheader("Total days demand was not met")
+                st.text(total_days-Total_days_Demand_met)
+
+            
 
 
 # Define your data for the first pie chart
@@ -202,6 +271,15 @@ def main():
 
 # Display the second chart in the second column
             col2.plotly_chart(fig2, use_container_width=True)
+
+
+#displaying charts and averages between them
+            st.plotly_chart(fig_year_rain_dist)
+            st.subheader("Average annual Rainfall(mm)")
+            st.text(Average_annual_rainfall)
+            st.plotly_chart(fig_harvesting_potential)
+            st.subheader("Average annual Rainwater harvesting potential (m3)")
+            st.text(Average_rain_water_harvesting_potential)
 
 
             #display data
