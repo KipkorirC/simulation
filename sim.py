@@ -132,7 +132,7 @@ def main():
         # Create input widgets for Rainfall Coefficient, Consumption Rate, Effective Roof Area, and Tank Capacity
         RAINFALL_COEFFICIENT = st.sidebar.number_input("Rainfall Coefficient", min_value=0.0)
         CONSUMPTION_RATE_IN_LITRES = st.sidebar.number_input("Consumption Rate (in Litres)", min_value=0.0)
-        POPULATION_PER_HOUSEHOLD = st.sidebar.number_input("Population per household",min_value=0)
+        POPULATION_PER_HOUSEHOLD = st.sidebar.number_input("Population",min_value=0)
         EFFECTIVE_ROOF_AREA_M2 = st.sidebar.number_input("Effective Roof Area (m2)", min_value=0.0)
         TANK_CAPACITY_LITRES = st.sidebar.number_input("Tank Capacity (Litres)", min_value=0.0)
     
@@ -177,7 +177,7 @@ def main():
 
 
             Monthly_Rain_Analysis = Raw_data.groupby('Month')['Rainfall (mm)'].sum().reset_index()
-            Yearly_Rain_analysis = Raw_data.groupby('Year')['Rainfall (mm)'].mean().reset_index()
+            Yearly_Rain_analysis = Raw_data.groupby('Year')['Rainfall (mm)'].sum().reset_index()
             Yearly_Potential = Raw_data.groupby('Year')["Volume Generated (m3)"].sum().reset_index()
 
                    
@@ -206,13 +206,13 @@ def main():
             
             left_column,middle_column, right_column = st.columns(3)
             with left_column:
-                st.subheader("Total Volume Generated: ")
+                st.subheader("Total Volume Generated(m3): ")
                 st.text(Total_volume_generated_from_roof)
             with middle_column:
-                st.subheader("Total Rainfall")
+                st.subheader("Total Rainfall(mm)")
                 st.text(Total_rainfall)
             with right_column:
-                st.subheader("Total Overflow: ")
+                st.subheader("Total Overflow(m3): ")
                 st.text(Total_overflow)
 
             left,middle = st.columns(2)
