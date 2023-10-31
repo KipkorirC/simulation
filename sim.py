@@ -163,7 +163,7 @@ def main():
 
         ##grouping the data into years and months
             Raw_data['Date'] = pd.to_datetime(Raw_data['Date'], format="%Y-%m-%d")
-            Raw_data['Month'] = Raw_data['Date'].dt.month
+            Raw_data['Month'] = Raw_data['Date'].dt.strftime('%B')
             Raw_data['Year'] = Raw_data['Date'].dt.year
 
         ##getting the number of years of the date
@@ -174,11 +174,28 @@ def main():
             Average_annual_rainfall = Total_rainfall/no_of_years
             Average_rain_water_harvesting_potential = Total_volume_generated_from_roof/no_of_years
         ##grouping the data into years
+            months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
+            #Monthly_Rain_Analysis = Raw_data.groupby('Month')['Rainfall (mm)'].mean().reset_index()
+            Monthly_Rain_sum = Raw_data.groupby(['Month', 'Date'])['Rainfall (mm)'].sum().reset_index()
 
-            Monthly_Rain_Analysis = Raw_data.groupby('Month')['Rainfall (mm)'].sum().reset_index()
+# Group by 'Month' and calculate the sum of 'Rainfall (mm)' for each month
+            Monthly_rain_mean = Monthly_Rain_sum.groupby('Month')['Rainfall (mm)'].sum().reindex(months).reset_index()
+            Monthly_rain_mean['mean Rainfall(mm)'] = Monthly_rain_mean['Rainfall (mm)']/no_of_years
+            Monthly_rain_mean.drop(columns='Rainfall (mm)',inplace=True)
             Yearly_Rain_analysis = Raw_data.groupby('Year')['Rainfall (mm)'].sum().reset_index()
             Yearly_Potential = Raw_data.groupby('Year')["Volume Generated (m3)"].sum().reset_index()
+
+            st.write(Monthly_rain_mean)
+            fig_monthly_rain_dist=px.bar(
+                Monthly_rain_mean,
+                x='Month',
+                y='mean Rainfall(mm)',
+                orientation="v",
+                title="<b>Monthly Rainfall Distribution</b>",
+                color_discrete_sequence=["#0083B8"]*len(Monthly_rain_mean),
+                template="plotly_white"
+            )
 
                    
             fig_year_rain_dist=px.bar(
@@ -280,6 +297,7 @@ def main():
             st.plotly_chart(fig_harvesting_potential)
             st.subheader("Average annual Rainwater harvesting potential (m3)")
             st.text(Average_rain_water_harvesting_potential)
+            st.plotly_chart(fig_monthly_rain_dist)
 
 
             #display data
