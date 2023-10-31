@@ -186,7 +186,7 @@ def main():
             Yearly_Rain_analysis = Raw_data.groupby('Year')['Rainfall (mm)'].sum().reset_index()
             Yearly_Potential = Raw_data.groupby('Year')["Volume Generated (m3)"].sum().reset_index()
 
-            st.write(Monthly_rain_mean)
+        
             fig_monthly_rain_dist=px.bar(
                 Monthly_rain_mean,
                 x='Month',
