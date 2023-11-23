@@ -62,7 +62,10 @@ class roof_data:
         overflow = max(0,Volume_at_the_start_m3 + Volume_Generated_m3 - Volume_consumed_m3 - (self.TANK_CAPACITY_LITRES/1000))
 
         #calculating if demand was met(1) if it was not met(0)
-        demand_met = 1 if Volume_at_the_start_m3 >= demand_per_day else 0
+        if Volume_at_the_start_m3 >= demand_per_day:
+            demand_met = 1
+        else:
+            demand_met = 0
 
         #returning the data as a dictionary
         return {
@@ -102,7 +105,11 @@ class roof_data:
             if day_data["Demand Met"]!=0:
                 Total_days_Demand_met+=1
         
-        Results=[total_days,Total_days_Demand_met,Daily_data,Total_overflow,Total_volume_generated_from_roof,Total_rainfall]
+        #filename =(f"AREA_{self.EFFECTIVE_ROOF_AREA_M2}_POP_{self.POPULATION_PER_HOUSEHOLD}_TANK_{self.TANK_CAPACITY_LITRES}.csv")
+        Raw_data = pd.DataFrame(Daily_data)
+        #Raw_data.to_csv(filename)
+        
+        Results=[total_days,Total_days_Demand_met,Raw_data,Total_overflow,Total_volume_generated_from_roof,Total_rainfall]
         return Results
 def main():
     st.set_page_config(
@@ -146,7 +153,7 @@ def main():
         #Results=[days_with_overflow,total_days,Demand_met,Demand_not_met]
             total_days = simulation_results[0]
             Total_days_Demand_met = simulation_results[1]
-            Raw_data =pd.DataFrame(simulation_results[2])
+            Raw_data =simulation_results[2]
             Total_overflow = simulation_results[3]
             Total_volume_generated_from_roof = simulation_results[4]
             Total_rainfall = simulation_results[5]
@@ -218,29 +225,39 @@ def main():
                 template="plotly_white"
             )
 
-            
+            ## actual visualization
 
-            
-            left_column,middle_column, right_column = st.columns(3)
+            # Define a custom style for better visibility
+            left_column, middle_column, right_column = st.columns(3)
+
             with left_column:
-                st.subheader("Total Volume Generated(m3): ")
-                st.text(Total_volume_generated_from_roof)
-            with middle_column:
-                st.subheader("Total Rainfall(mm)")
-                st.text(Total_rainfall)
-            with right_column:
-                st.subheader("Total Overflow(m3): ")
-                st.text(Total_overflow)
+                st.subheader("Total Volume Generated (m³): ")
+                st.markdown("<p style='font-size: 19px; color: #3366cc; font-weight: bold;'>{}</p>".format(Total_volume_generated_from_roof),
+                            unsafe_allow_html=True)
 
-            left,middle = st.columns(2)
+            with middle_column:
+                st.subheader("Total Rainfall (mm):")
+                st.markdown("<p style='font-size: 19px; color: #3366cc; font-weight: bold;'>{}</p>".format(Total_rainfall),
+                            unsafe_allow_html=True)
+
+            with right_column:
+                st.subheader("Total Overflow (m³): ")
+                st.markdown("<p style='font-size: 19px; color: #3366cc; font-weight: bold;'>{}</p>".format(Total_overflow),
+                            unsafe_allow_html=True)
+
+            left, middle = st.columns(2)
+
             with left:
                 st.subheader("Total days where demand was met")
-                st.text(Total_days_Demand_met)
+                st.markdown("<p style='font-size: 19px; color: #3366cc; font-weight: bold;'>{}</p>".format(Total_days_Demand_met),
+                            unsafe_allow_html=True)
+
             with middle:
                 st.subheader("Total days demand was not met")
-                st.text(total_days-Total_days_Demand_met)
+                st.markdown("<p style='font-size: 19px; color: #3366cc; font-weight: bold;'>{}</p>".format(total_days - Total_days_Demand_met),
+                            unsafe_allow_html=True)
 
-            
+                        
 
 
 # Define your data for the first pie chart
